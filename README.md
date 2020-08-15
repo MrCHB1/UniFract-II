@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MrCHB1/UniFract-II/releases"></a>
+  <a href="https://github.com/MrCHB1/UniFract-II/releases"><img src="https://img.shields.io/github/releases/MrCHB1/UniFract-II/total.svg?style=flat-square" alt="Github release"></a>
 </p>
 
 ## How to Use
