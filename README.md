@@ -6,6 +6,10 @@
   <strong>The Next Generation of UniFract, UniFract II.</strong>
 </p>
 
+<p align="center">
+  <a href="https://github.com/MrCHB1/UniFract-II/releases"></a>
+</p>
+
 ## How to Use
 To start up UniFract II, download the file from Releases and run main.py.
 
