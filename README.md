@@ -1,5 +1,7 @@
 <h1 align="center">UniFract II</h1>
 <p align="center">
+  <img src="https://github.com/MrCHB1/UniFract-II/blob/master/Screenshot%20from%202020-08-15%2017-11-27.png?raw=true" width=248 style=""/>
+  <br />
   <strong>The Next Generation of UniFract, UniFract II.</satrong>
 </p>
 
