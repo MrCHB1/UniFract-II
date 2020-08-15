@@ -1,5 +1,7 @@
-# UniFract-II
-The Next Generation of UniFract, UniFract II.
+<h1 align="center">UniFract II</h1>
+<p align="center">
+  <strong>The Next Generation of UniFract, UniFract II.</satrong>
+</p>
 
 ## How to Use
 To start up UniFract II, download the file from Releases and run main.py.
