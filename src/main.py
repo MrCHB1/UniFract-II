@@ -438,6 +438,8 @@ void main() {
 }
 """
 
+# Ignore this, this was used for Post Processing testing.
+
 screenVert = """
 #version 410 core
 layout (location = 0) in vec2 aPos;
@@ -800,7 +802,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.resize(WIDTH + 20, 490)
-        self.setWindowTitle("UniFract++")
+        self.setWindowTitle("UniFract II")
 
         self.fractalEditor = fractalEditor(self)
 
