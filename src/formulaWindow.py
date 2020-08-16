@@ -15,7 +15,7 @@ class fractalEditor(QDialog):
     def initUI(self):
         self.glWidget = main.GLWidget()
 
-        self.z = open("src/main.py", "r")
+        self.z = open("main.py, "r")
 
         self.f = self.z.readlines()
 
