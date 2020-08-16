@@ -8,7 +8,9 @@ import os.path
 from formulaWindow import *
 
 import OpenGL.GL as gl
+
 from OpenGL import GLU
+from OpenGL import GLUT
 from OpenGL.GL.shaders import *
 import glfw
 
