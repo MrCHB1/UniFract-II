@@ -1220,32 +1220,30 @@ class MainWindow(QMainWindow):
 
     def editGradient(self):
 
-        global R1
-        global B1
-        global G1
-        global R2
-        global B2
-        global G2
-        global R3
-        global B3
-        global G3
-        global R4
-        global B4
-        global G4
-        global col1R
-        global col1G
-        global col1B
-        global col2R
-        global col2G
-        global col2B
-        global col3R
-        global col3G
-        global col3B
-        global col4R
-        global col4G
-        global col4B
-	
-	
+	global R1
+	global B1
+	global G1
+	global R2
+	global B2
+	global G2
+	global R3
+	global B3
+	global G3
+	global R4
+	global B4
+	global G4
+	global col1R
+	global col1G
+	global col1B
+	global col2R
+	global col2G
+	global col2B
+	global col3R
+	global col3G
+	global col3B
+	global col4R
+	global col4G
+	global col4B
 	
 	global program
 
