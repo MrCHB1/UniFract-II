@@ -1298,7 +1298,7 @@ class MainWindow(QMainWindow):
         global col10B
         global program
 
-        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+        self.program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
         col1R = random.randint(0, 100)
         col1B = random.randint(0, 100)
