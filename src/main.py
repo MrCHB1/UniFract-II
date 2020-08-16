@@ -1244,6 +1244,9 @@ class MainWindow(QMainWindow):
         global col4R
         global col4G
         global col4B
+	
+	
+	
 	global program
 
         program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
