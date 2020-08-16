@@ -1,0 +1,6 @@
+You must include the following to Get UniFract II to work:
+
+PyQt5
+OpenGL
+
+If none of these are installed, UniFract II will NOT work.
