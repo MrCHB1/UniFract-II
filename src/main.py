@@ -1218,8 +1218,7 @@ class MainWindow(QMainWindow):
 
         Zoom.setText(str(zoom))
 
-    def editGradient(self):
-
+    def editGradient(self):	
 	global R1
 	global B1
 	global G1
