@@ -8,9 +8,7 @@ import os.path
 from formulaWindow import *
 
 import OpenGL.GL as gl
-
 from OpenGL import GLU
-from OpenGL import GLUT
 from OpenGL.GL.shaders import *
 import glfw
 
@@ -440,8 +438,6 @@ void main() {
 }
 """
 
-# Ignore this, this was used for Post Processing testing.
-
 screenVert = """
 #version 410 core
 layout (location = 0) in vec2 aPos;
@@ -804,7 +800,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.resize(WIDTH + 20, 490)
-        self.setWindowTitle("UniFract II")
+        self.setWindowTitle("UniFract++")
 
         self.fractalEditor = fractalEditor(self)
 
@@ -840,6 +836,7 @@ class MainWindow(QMainWindow):
         global G4
         global zlay
         global formulaBtn
+        global presCol
 
         # Tabs
 
@@ -1088,6 +1085,17 @@ class MainWindow(QMainWindow):
         col4.addWidget(G4)
         col4.addWidget(B4)
 
+        # Presets
+
+        presCol = QComboBox()
+        presCol.addItem("Default")
+        presCol.addItem("Fire")
+        presCol.addItem("Sunset")
+        presCol.addItem("Ocean")
+        presCol.addItem("Pastel Rainbow")
+
+        presCol.currentIndexChanged.connect(self.changePresets)
+
         # Random Colors
 
         randCol = QPushButton()
@@ -1099,6 +1107,7 @@ class MainWindow(QMainWindow):
         inColorBtn = QPushButton('Interior Color')
         inColorBtn.clicked.connect(self.inColor)
 
+        tab3.layout.addRow("Presets", presCol)
         tab3.layout.addRow("Color 1", col1)
         tab3.layout.addRow("Color 2", col2)
         tab3.layout.addRow("Color 3", col3)
@@ -1217,33 +1226,33 @@ class MainWindow(QMainWindow):
         global zoom
 
         Zoom.setText(str(zoom))
-	def editGradient(self):
-		global R1
-		global B1
-		global G1
-		global R2
-		global B2
-		global G2
-		global R3
-		global B3
-		global G3
-		global R4
-		global B4
-		global G4
-		global col1R
-		global col1G
-		global col1B
-		global col2R
-		global col2G
-		global col2B
-		global col3R
-		global col3G
-		global col3B
-		global col4R
-		global col4G
-		global col4B
 
-		global program
+    def editGradient(self):
+        global program
+        global R1
+        global B1
+        global G1
+        global R2
+        global B2
+        global G2
+        global R3
+        global B3
+        global G3
+        global R4
+        global B4
+        global G4
+        global col1R
+        global col1G
+        global col1B
+        global col2R
+        global col2G
+        global col2B
+        global col3R
+        global col3G
+        global col3B
+        global col4R
+        global col4G
+        global col4B
 
         program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
@@ -1300,7 +1309,7 @@ class MainWindow(QMainWindow):
         global col10B
         global program
 
-        self.program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
         col1R = random.randint(0, 100)
         col1B = random.randint(0, 100)
@@ -1332,6 +1341,164 @@ class MainWindow(QMainWindow):
         col10R = random.randint(0, 100)
         col10G = random.randint(0, 100)
         col10B = random.randint(0, 100)
+
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col1"), col1R / 100, col1G / 100, col1B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col2"), col2R / 100, col2G / 100, col2B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col3"), col3R / 100, col3G / 100, col3B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col4"), col4R / 100, col4G / 100, col4B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col5"), col5R / 100, col5G / 100, col5B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col6"), col6R / 100, col6G / 100, col6B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col7"), col7R / 100, col7G / 100, col7B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col8"), col8R / 100, col8G / 100, col8B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col9"), col9R / 100, col9G / 100, col9B / 100)
+
+        self.glWidget.update()
+
+    def changePresets(self):
+        global col1R
+        global col1G
+        global col1B
+        global col2R
+        global col2G
+        global col2B
+        global col3R
+        global col3G
+        global col3B
+        global col4R
+        global col4G
+        global col4B
+        global col5R
+        global col5G
+        global col5B
+        global col6R
+        global col6G
+        global col6B
+        global col7R
+        global col7G
+        global col7B
+        global col8R
+        global col8G
+        global col8B
+        global col9R
+        global col9G
+        global col9B
+        global col10R
+        global col10G
+        global col10B
+        global presCol
+        global program
+
+        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+
+        if presCol.currentText() == "Default":
+            col1R = 10
+            col1G = 50
+            col1B = 100
+            col2R = 70
+            col2G = 0
+            col2B = 100
+            col3R = 89
+            col3G = 0
+            col3B = 10
+            col4R = 100
+            col4G = 50
+            col4B = 0
+            col5R = 100
+            col5G = 100
+            col5B = 12
+            col6R = 100
+            col6G = 100
+            col6B = 0
+            col7R = 50
+            col7G = 100
+            col7B = 0
+            col8R = 0
+            col8G = 100
+            col8B = 0
+            col9R = 0
+            col9G = 100
+            col9B = 50
+            col10R = 0
+            col10G = 100
+            col10B = 0
+
+        elif presCol.currentText() == "Fire":
+            col1R = 0
+            col1G = 0
+            col1B = 0
+            col2R = 100
+            col2G = 50
+            col2B = 0
+            col3R = 100
+            col3G = 75
+            col3B = 0
+            col4R = 100
+            col4G = 100
+            col4B = 100
+            col5R = 100
+            col5G = 80
+            col5B = 0
+            col6R = 100
+            col6G = 50
+            col6B = 0
+            col7R = 100
+            col7G = 10
+            col7B = 10
+            col8R = 0
+            col8G = 0
+            col8B = 0
+            col9R = 30
+            col9G = 20
+            col9B = 10
+            col10R = 100
+            col10G = 97
+            col10B = 0
+
+        elif presCol.currentText() == "Sunset":
+            col1R = 0
+            col1G = 0
+            col1B = 40
+            col2R = 50
+            col2G = 0
+            col2B = 72
+            col3R = 100
+            col3G = 50
+            col3B = 1
+            col4R = 100
+            col4G = 100
+            col4B = 65
+            col5R = 100
+            col5G = 100
+            col5B = 100
+        
+        elif presCol.currentText() == "Pastel Rainbow":
+            col1R = 100
+            col1G = 40
+            col1B = 38
+            col2R = 99
+            col2G = 69
+            col2B = 26
+            col3R = 99
+            col3G = 99
+            col3B = 59
+            col4R = 62
+            col4G = 87
+            col4B = 62
+            col5R = 62
+            col5G = 75
+            col5B = 81
+            col6R = 80
+            col6G = 60
+            col6B = 78
+            col7R = 100
+            col7G = 40
+            col7B = 38
+            col8R = 99
+            col8G = 69
+            col8B = 26
+            col9R = 99
+            col9G = 99
+            col9B = 59
 
         gl.glUniform3f(gl.glGetUniformLocation(program, "col1"), col1R / 100, col1G / 100, col1B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col2"), col2R / 100, col2G / 100, col2B / 100)
