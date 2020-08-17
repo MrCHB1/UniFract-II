@@ -1253,8 +1253,11 @@ class MainWindow(QMainWindow):
         global col4G
         global col4B
 
-        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
-
+		if bool(compileShader):
+        	program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+		else:
+			pass
+			
         col1R = int(R1.value())
         col1G = int(G1.value())
         col1B = int(B1.value())
