@@ -176,7 +176,7 @@ vec3 palette[10] = vec3[10](vec3(col1), vec3(col2), vec3(col3), vec3(col4), vec3
 dvec2 z;
 
 uniform int FRACTAL_TYPE;
-uniform int POWER;
+uniform double POWER;
 
 uniform bool juliaEnabled;
 uniform bool smoothColoring;
@@ -192,13 +192,10 @@ dvec2 c_add(double ar, double ai, double br, double bi, double or, double oi) {
     return dvec2(or, oi);
 }
 
-dvec2 c_pow(double ar, double ai, int power) {
-    dvec2 z = dvec2(ar, ai);
-    for (int i = 0; i < power - 1; i++) {
-        double or = z.x*ar-z.y*ai;
-        double oi = z.x*ai+z.y*ar;
-        z = dvec2(or, oi);
-    }
+dvec2 c_pow(double ar, double ai, double power) {
+    double r = sqrt(ar*ar+ai*ai);
+    double theta = atan2(ai, ar);
+    dvec2 z = pow(r, power) * dvec2(cos(power*theta), sin(power*theta));
     return z;
 }
 
@@ -617,7 +614,7 @@ class GLWidget(QGLWidget):
         gl.glUniform1d(gl.glGetUniformLocation(program, "zoom"), zoom)
         gl.glUniform1i(gl.glGetUniformLocation(program, "itr"), itr)
         gl.glUniform1i(gl.glGetUniformLocation(program, "FRACTAL_TYPE"), curFractal)
-        gl.glUniform1i(gl.glGetUniformLocation(program, "POWER"), power)
+        gl.glUniform1f(gl.glGetUniformLocation(program, "POWER"), power)
         gl.glUniform2d(gl.glGetUniformLocation(program, "Start"), StartX, StartY)
         gl.glUniform1f(gl.glGetUniformLocation(program, "juliaEnabled"), isJulia)
         # gl.glUniform1i(gl.glGetUniformLocation(program, "gradient"), 0)
@@ -896,6 +893,7 @@ class MainWindow(QMainWindow):
         fractalType.currentIndexChanged.connect(self.changeFractal)
 
         Power = QSpinBox()
+        Power.setValidator(QDoubleValidator())
         Power.setValue(2)
         Power.setMinimum(2)
         Power.setMaximum(5)
