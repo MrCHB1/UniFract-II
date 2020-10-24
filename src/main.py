@@ -70,6 +70,10 @@ col10R = 0
 col10G = 100
 col10B = 0
 
+inColorR = 0
+inColorG = 0
+inColorB = 0
+
 import glm
 
 glfw.init()
@@ -160,13 +164,16 @@ uniform vec3 col7;
 uniform vec3 col8;
 uniform vec3 col9;
 uniform vec3 col10;
+uniform vec3 col11;
+
+uniform vec3 inColor;
 
 in vec2 aTexcoord;
 uniform dvec2 cFormula;
 
 bool escaped = false;
 
-vec3 palette[10] = vec3[10](vec3(col1), vec3(col2), vec3(col3), vec3(col4), vec3(col5), vec3(col6), vec3(col7), vec3(col8), vec3(col9), vec3(col10));
+vec3 palette[11] = vec3[11](vec3(col1), vec3(col2), vec3(col3), vec3(col4), vec3(col5), vec3(col6), vec3(col7), vec3(col8), vec3(col9), vec3(col10), vec3(col11));
 
 /* 
 0 - Mandelbrot
@@ -176,7 +183,7 @@ vec3 palette[10] = vec3[10](vec3(col1), vec3(col2), vec3(col3), vec3(col4), vec3
 dvec2 z;
 
 uniform int FRACTAL_TYPE;
-uniform int POWER;
+uniform float POWER;
 
 uniform bool juliaEnabled;
 uniform bool smoothColoring;
@@ -186,41 +193,80 @@ uniform dvec2 Start;
 #define twopi 6.283185
 #define halfpi twopi / 4
 
-dvec2 c_add(double ar, double ai, double br, double bi, double or, double oi) {
-    or = ar + br;
-    oi = ai + bi;
-    return dvec2(or, oi);
-}
-
-dvec2 c_pow(double ar, double ai, int power) {
-    dvec2 z = dvec2(ar, ai);
-    for (int i = 0; i < power - 1; i++) {
-        double or = z.x*ar-z.y*ai;
-        double oi = z.x*ai+z.y*ar;
-        z = dvec2(or, oi);
-    }
+dvec2 c_pow(dvec2 a, float power) {
+    double r = sqrt(a.x*a.x+a.y*a.y);
+    float theta = atan(float(z.y), float(z.x));
+    dvec2 z = pow(float(r), power) * dvec2(cos(power*theta), sin(power*theta));
     return z;
 }
 
-dvec2 c_powcel(double ar, double ai, int power) {
-    dvec2 z = dvec2(ar, ai);
-    for (int i = 0; i < power - 1; i++) {
-        double or = abs(z.x*ar-z.y*ai);
-        double oi = z.x*ai+z.y*ar;
-        z = dvec2(or, oi);
-    }
+dvec2 c_powre(dvec2 a, float power) {
+    double r = sqrt(a.x*a.x+a.y*a.y);
+    float theta = atan(float(z.y), float(-abs(z.x)));
+    dvec2 z = pow(float(r), power) * dvec2(cos(power*theta), sin(power*theta));
     return z;
 }
 
-dvec2 complex(dvec2 a, dvec2 b) {
-    dvec2 ans = dvec2(0.0);
-    ans.x = (a.x*b.x)-(a.x*b.x);
-    ans.y = (a.y*b.x)+(a.x*b.y);
-    return ans;
+dvec2 c_powim(dvec2 a, float power) {
+    double r = sqrt(a.x*a.x+a.y*a.y);
+    float theta = atan(float(-abs(z.y)), float(z.x));
+    dvec2 z = pow(float(r), power) * dvec2(cos(power*theta), sin(power*theta));
+    return z;
 }
 
-dvec2 z2(dvec2 num) {
-    return dvec2(pow(float(num.x),2)-pow(float(num.y),2),2*num.x*num.y);
+dvec2 c_powcel(dvec2 a, float power) {
+    double r = sqrt(a.x*a.x+a.y*a.y);
+    float theta = atan(float(z.y), float(z.x));
+    dvec2 z = pow(float(r), power) * dvec2(abs(cos(power*theta)), sin(power*theta));
+    return z;
+}
+
+dvec2 c_times(dvec2 a, dvec2 b) {
+    return dvec2(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);
+}
+
+dvec2 c_celtimes(dvec2 a, dvec2 b) {
+    return dvec2(abs(a.x*b.x-a.y*b.y),a.x*b.y+a.y*b.x);
+}
+
+dvec2 c_celtimesre(dvec2 a, dvec2 b) {
+    return dvec2(abs(a.x*b.x-a.y*b.y),-(abs(a.x)*b.y+a.y*abs(b.x)));
+}
+
+dvec2 c_celtimesim(dvec2 a, dvec2 b) {
+    return dvec2(abs(a.x*b.x-a.y*b.y),-(a.x*abs(b.y)+abs(a.y)*b.x));
+}
+
+dvec2 c_powi(dvec2 a, int power) {
+    dvec2 o = a;
+    for (int i = 1; i < power; i++) {
+        o = c_times(o, a);
+    }
+    return o;
+}
+
+dvec2 c_powceli(dvec2 a, int power) {
+    dvec2 o = a;
+    for (int i = 1; i < power; i++) {
+        o = c_celtimes(o, a);
+    }
+    return o;
+}
+
+dvec2 c_powcelrei(dvec2 a, int power) {
+    dvec2 o = a;
+    for (int i = 1; i < power; i++) {
+        o = c_celtimesre(o, a);
+    }
+    return o;
+}
+
+dvec2 c_powcelimi(dvec2 a, int power) {
+    dvec2 o = a;
+    for (int i = 1; i < power; i++) {
+        o = c_celtimesim(o, a);
+    }
+    return o;
 }
 
 double mandelbrot(dvec2 c) {
@@ -242,51 +288,100 @@ double mandelbrot(dvec2 c) {
         double zizisqr = zisqr*zisqr;
         double zrzisqr = zrsqr*zisqr;
 
-        dvec2 zc = c_pow(z.x, z.y, POWER);
-        dvec2 zabsr = c_pow(-abs(z.x), z.y, POWER);
-        dvec2 zabsi = c_pow(z.x, -abs(z.y), POWER);
+        //dvec2 zc = c_pow(z.x, z.y, POWER);
+        //dvec2 zabsr = c_pow(-abs(z.x), z.y, POWER);
+        //dvec2 zabsi = c_pow(z.x, -abs(z.y), POWER);
     
         if (FRACTAL_TYPE == 0) {
-            znew = zc+c;
+            if (POWER == int(POWER))
+                znew = c_powi(z, int(POWER)) + c;
+            else
+                znew = c_pow(z, POWER) + c;
         } else if (FRACTAL_TYPE == 1) {
-            znew = dvec2(zc.x, -zc.y) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powi(z, int(POWER)).x, -(c_powi(z, int(POWER))).y) + c;
+            else
+                znew = dvec2(c_pow(z, POWER).x, -c_pow(z, POWER).y) + c;
         } else if (FRACTAL_TYPE == 2) {
-            znew = dvec2(zc.x, -abs(zc.y)) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powi(z, int(POWER)).x, -abs(c_powi(z, int(POWER))).y) + c;
+            else
+                znew = dvec2(c_pow(z, POWER).x, -abs(c_pow(z, POWER)).y) + c;
         } else if (FRACTAL_TYPE == 3) {
-            znew = zabsr + c;
+            if (POWER == int(POWER))
+                znew = c_powi(dvec2(-abs(z.x), z.y), int(POWER)) + c;
+            else
+                znew = c_powre(z, POWER) + c;
         } else if (FRACTAL_TYPE == 4) {
-            znew = zabsi + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powi(z, int(POWER)).x, -(c_powi(dvec2(z.x, abs(z.y)), int(POWER))).y) + c;
+            else
+                znew = c_powim(z, POWER) + c;
         } else if (FRACTAL_TYPE == 5) {
-            znew = c_powcel(z.x, z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powi(z, int(POWER)).x), c_powi(z, int(POWER)).y) + c;
+            else
+                znew = c_powcel(z, POWER) + c;
         } else if (FRACTAL_TYPE == 6) {
-            znew = c_powcel(z.x, -z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powi(z, int(POWER)).x), -(c_powi(z, int(POWER)).y)) + c;
+            else
+                znew = c_powcel(dvec2(z.x, -z.y), POWER) + c;
         } else if (FRACTAL_TYPE == 7) {
-            znew = c_powcel(-abs(z.x), z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powi(z, int(POWER))).x, -(c_powi(dvec2(abs(z.x), z.y), int(POWER))).y) + c;
+            else
+                znew = dvec2(c_powcel(z, POWER).x, -(c_pow(dvec2(abs(z.x), z.y), POWER)).y) + c;
         } else if (FRACTAL_TYPE == 8) {
-            znew = c_powcel(abs(z.x), -abs(z.y), POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powcel(z, int(POWER)).x, -c_powcelrei(z, int(POWER)).y) + c;
+            else
+                znew = dvec2(abs(c_pow(z, POWER)).x, -abs(c_pow(z, POWER)).y) + c;
         } else if (FRACTAL_TYPE == 9) {
-            znew = c_powcel(z.x, -abs(z.y), POWER) + c;
+            znew = c_powcelimi(z, int(POWER)) + c;
         } else if (FRACTAL_TYPE == 10) {
-            if (mod(i,4)==0) {
-                znew = zc + c;
-            }
-            if (mod(i,4)==1) {
-                znew = dvec2(zc.x, -abs(zc.y)) + c;
-            }
-            if (mod(i,4)==2) {
-                znew = zc + c;
-            }
-            if (mod(i,4)==3) {
-                znew = zc + c;
+            if (POWER == int(POWER)) {
+                if (mod(i,4)==0) {
+                    znew = c_powi(z, int(POWER)) + c;
+                }
+                if (mod(i,4)==1) {
+                    znew = dvec2(c_powi(z, int(POWER)).x, -abs(c_powi(z, int(POWER))).y) + c;
+                }
+                if (mod(i,4)==2) {
+                    znew = c_powi(z, int(POWER)) + c;
+                }
+                if (mod(i,4)==3) {
+                    znew = c_powi(z, int(POWER)) + c;
+                }
+            } else {
+                if (mod(i,4)==0) {
+                    znew = c_pow(z, POWER) + c;
+                }
+                if (mod(i,4)==1) {
+                    znew = dvec2(c_pow(z, POWER).x, -abs(c_pow(z, POWER)).y) + c;
+                }
+                if (mod(i,4)==2) {
+                    znew = c_pow(z, POWER) + c;
+                }
+                if (mod(i,4)==3) {
+                    znew = c_pow(z, POWER) + c;
+                }
             }
         } else if (FRACTAL_TYPE == 11) {
-            znew = c_pow(abs(z.x), z.y, POWER) + c;
+           if (POWER == int(POWER))
+                znew = dvec2(c_powre(z, int(POWER)).x, -c_powre(dvec2(abs(z.x), z.y), int(POWER)).y) + c;
+            else
+                znew = dvec2(c_powre(z, POWER).x, -c_powre(z, POWER).y) + c;
         } else if (FRACTAL_TYPE == 12) {
-            znew = c_powcel(abs(z.x), z.y, POWER) + c;
-        } else if (FRACTAL_TYPE == 13) {
+            //znew = c_powcel(abs(z.x), z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powceli(dvec2(abs(z.x), z.y), int(POWER)).x), c_powceli(dvec2(abs(z.x), z.y), int(POWER)).y) + c;
+            else
+                znew = dvec2(c_powcel(dvec2(z.x, z.y), POWER).x, c_powcel(dvec2(abs(z.x), z.y), POWER).y) + c;
+        } /*else if (FRACTAL_TYPE == 13) {
             znew.x = z.x*z.x - z.y*z.y + c.x;
             znew.y = 2.0 * z.x  * z.y + c.y;
-        }
+        }*/
 
         z = znew;
         if(dot(z, z) > threshold) {
@@ -310,7 +405,15 @@ double mandelbrot(dvec2 c) {
 }
 
 double julia(dvec2 z) {
-    dvec2 c = vec2(Start.x, Start.y);
+    dvec2 c = dvec2(Start.x, Start.y);
+
+    if (smoothColoring) {
+        double c2 = dot(c, c);
+    }
+
+    const double B = 256.0;
+    double l = 0.0;
+
     for (int i = 0; i < itr; i++) {
         dvec2 znew;
 
@@ -320,59 +423,119 @@ double julia(dvec2 z) {
         double zizisqr = zisqr*zisqr;
         double zrzisqr = zrsqr*zisqr;
 
-        dvec2 zc = c_pow(z.x, z.y, POWER);
-        dvec2 zabsr = c_pow(-abs(z.x), z.y, POWER);
-        dvec2 zabsi = c_pow(z.x, -abs(z.y), POWER);
+        //dvec2 zc = c_pow(z.x, z.y, POWER);
+        //dvec2 zabsr = c_pow(-abs(z.x), z.y, POWER);
+        //dvec2 zabsi = c_pow(z.x, -abs(z.y), POWER);
     
         if (FRACTAL_TYPE == 0) {
-            znew = zc + c;
+            if (POWER == int(POWER))
+                znew = c_powi(z, int(POWER)) + c;
+            else
+                znew = c_pow(z, POWER) + c;
         } else if (FRACTAL_TYPE == 1) {
-            znew = dvec2(zc.x, -zc.y) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powi(z, int(POWER)).x, -(c_powi(z, int(POWER))).y) + c;
+            else
+                znew = dvec2(c_pow(z, POWER).x, -c_pow(z, POWER).y) + c;
         } else if (FRACTAL_TYPE == 2) {
-            znew = dvec2(zc.x, -abs(zc.y)) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powi(z, int(POWER)).x, -abs(c_powi(z, int(POWER))).y) + c;
+            else
+                znew = dvec2(c_pow(z, POWER).x, -abs(c_pow(z, POWER)).y) + c;
         } else if (FRACTAL_TYPE == 3) {
-            znew = zabsr + c;
+            if (POWER == int(POWER))
+                znew = c_powi(dvec2(-abs(z.x), z.y), int(POWER)) + c;
+            else
+                znew = c_powre(z, POWER) + c;
         } else if (FRACTAL_TYPE == 4) {
-            znew = zabsi + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powi(z, int(POWER)).x, -(c_powi(dvec2(z.x, abs(z.y)), int(POWER))).y) + c;
+            else
+                znew = c_powim(z, POWER) + c;
         } else if (FRACTAL_TYPE == 5) {
-            znew = c_powcel(z.x, z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powi(z, int(POWER)).x), c_powi(z, int(POWER)).y) + c;
+            else
+                znew = c_powcel(z, POWER) + c;
         } else if (FRACTAL_TYPE == 6) {
-            znew = c_powcel(z.x, -z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powi(z, int(POWER)).x), -(c_powi(z, int(POWER)).y)) + c;
+            else
+                znew = c_powcel(dvec2(z.x, -z.y), POWER) + c;
         } else if (FRACTAL_TYPE == 7) {
-            znew = c_powcel(-abs(z.x), z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powi(z, int(POWER))).x, -(c_powi(dvec2(abs(z.x), z.y), int(POWER))).y) + c;
+            else
+                znew = dvec2(c_powcel(z, POWER).x, -(c_pow(dvec2(abs(z.x), z.y), POWER)).y) + c;
         } else if (FRACTAL_TYPE == 8) {
-            znew = c_powcel(abs(z.x), -abs(z.y), POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(c_powcel(z, int(POWER)).x, -c_powcelrei(z, int(POWER)).y) + c;
+            else
+                znew = dvec2(abs(c_pow(z, POWER)).x, -abs(c_pow(z, POWER)).y) + c;
         } else if (FRACTAL_TYPE == 9) {
-            znew = c_powcel(z.x, -abs(z.y), POWER) + c;
+            znew = c_powcelimi(z, int(POWER)) + c;
         } else if (FRACTAL_TYPE == 10) {
-            if (mod(i,4)==0) {
-                znew = zc + c;
-            }
-            if (mod(i,4)==1) {
-                znew = dvec2(zc.x, -abs(zc.y)) + c;
-            }
-            if (mod(i,4)==2) {
-                znew = zc + c;
-            }
-            if (mod(i,4)==3) {
-                znew = zc + c;
+            if (POWER == int(POWER)) {
+                if (mod(i,4)==0) {
+                    znew = c_powi(z, int(POWER)) + c;
+                }
+                if (mod(i,4)==1) {
+                    znew = dvec2(c_powi(z, int(POWER)).x, -abs(c_powi(z, int(POWER))).y) + c;
+                }
+                if (mod(i,4)==2) {
+                    znew = c_powi(z, int(POWER)) + c;
+                }
+                if (mod(i,4)==3) {
+                    znew = c_powi(z, int(POWER)) + c;
+                }
+            } else {
+                if (mod(i,4)==0) {
+                    znew = c_pow(z, POWER) + c;
+                }
+                if (mod(i,4)==1) {
+                    znew = dvec2(c_pow(z, POWER).x, -abs(c_pow(z, POWER)).y) + c;
+                }
+                if (mod(i,4)==2) {
+                    znew = c_pow(z, POWER) + c;
+                }
+                if (mod(i,4)==3) {
+                    znew = c_pow(z, POWER) + c;
+                }
             }
         } else if (FRACTAL_TYPE == 11) {
-            znew = c_pow(abs(z.x), z.y, POWER) + c;
+           if (POWER == int(POWER))
+                znew = dvec2(c_powre(z, int(POWER)).x, -c_powre(dvec2(abs(z.x), z.y), int(POWER)).y) + c;
+            else
+                znew = dvec2(c_powre(z, POWER).x, -c_powre(z, POWER).y) + c;
         } else if (FRACTAL_TYPE == 12) {
-            znew = c_powcel(abs(z.x), z.y, POWER) + c;
-        } else if (FRACTAL_TYPE == 13) {
+            //znew = c_powcel(abs(z.x), z.y, POWER) + c;
+            if (POWER == int(POWER))
+                znew = dvec2(abs(c_powceli(dvec2(abs(z.x), z.y), int(POWER)).x), c_powceli(dvec2(abs(z.x), z.y), int(POWER)).y) + c;
+            else
+                znew = dvec2(c_powcel(dvec2(z.x, z.y), POWER).x, c_powcel(dvec2(abs(z.x), z.y), POWER).y) + c;
+        } /*else if (FRACTAL_TYPE == 13) {
             znew.x = z.x*z.x - z.y*z.y + c.x;
             znew.y = 2.0 * z.x  * z.y + c.y;
-        } 
+        }*/
 
         z = znew;
-        if((z.x*z.x)+(z.y*z.y) > threshold) {
+        if(dot(z, z) > threshold) {
             escaped = true;
             break;
         }
+        if (dot(z, z) < threshold && i == itr - 1) {
+            return double(0.0);
+        }
         n++;
     }
+
+    if (smoothColoring) {
+        double sl = n - log2(log2(float(dot(z,z)))) + 4.0;
+
+        double al = smoothstep(-0.1, 0.0, sin(0.5*6.2831));
+        n = mix(n, sl, al);
+    }
+
     return n / float(itr);
 }
 
@@ -396,7 +559,7 @@ double mandelbrot3d(dvec2 c, float zlayer) {
 
 float x = 1.0 / 9.0;
 
-vec3 mapToColor(float t, vec3 c1, vec3 c2, vec3 c3, vec3 c4, vec3 c5, vec3 c6, vec3 c7, vec3 c8, vec3 c9, vec3 c10) {
+vec3 mapToColor(float t, vec3 c1, vec3 c2, vec3 c3, vec3 c4, vec3 c5, vec3 c6, vec3 c7, vec3 c8, vec3 c9, vec3 c10, vec3 c11) {
     if (t < x) return mix(c1, c2, t/x);
     else if (t < 2.0 * x) return mix(c2, c3, (t - x)/x);
     else if (t < 3.0 * x) return mix(c3, c4, (t - 2.0*x)/x);
@@ -406,6 +569,7 @@ vec3 mapToColor(float t, vec3 c1, vec3 c2, vec3 c3, vec3 c4, vec3 c5, vec3 c6, v
     else if (t < 7.0 * x) return mix(c7, c8, (t - 6.0*x)/x);
     else if (t < 8.0 * x) return mix(c8, c9, (t - 7.0*x)/x);
     else if (t < 9.0 * x) return mix(c9, c10, (t - 8.0*x)/x);
+    else if (t < 10.0 * x) return mix(c10, c11, (t - 9.0*x)/x);
 
     return c10;
 }
@@ -432,7 +596,7 @@ void main() {
     if (gl_FragCoord.x < 40)
         gl_FragColor = vec4(1.0);
 
-    vec4 color = escaped ? vec4(mapToColor(float(mod(t, itr)), vec3(palette[0]), vec3(palette[1]), vec3(palette[2]), vec3(palette[3]), vec3(palette[4]), vec3(palette[5]), vec3(palette[6]), vec3(palette[7]), vec3(palette[8]), vec3(palette[9])), 1.0) : vec4(vec3(0.0), 1.0);
+    vec4 color = escaped ? vec4(mapToColor(float(mod(t, itr)), vec3(palette[0]), vec3(palette[1]), vec3(palette[2]), vec3(palette[3]), vec3(palette[4]), vec3(palette[5]), vec3(palette[6]), vec3(palette[7]), vec3(palette[8]), vec3(palette[9]), vec3(palette[10])), 1.0) : vec4(inColor, 1.0);
 
     gl_FragColor = color;
 }
@@ -617,7 +781,7 @@ class GLWidget(QGLWidget):
         gl.glUniform1d(gl.glGetUniformLocation(program, "zoom"), zoom)
         gl.glUniform1i(gl.glGetUniformLocation(program, "itr"), itr)
         gl.glUniform1i(gl.glGetUniformLocation(program, "FRACTAL_TYPE"), curFractal)
-        gl.glUniform1i(gl.glGetUniformLocation(program, "POWER"), power)
+        gl.glUniform1f(gl.glGetUniformLocation(program, "POWER"), power)
         gl.glUniform2d(gl.glGetUniformLocation(program, "Start"), StartX, StartY)
         gl.glUniform1f(gl.glGetUniformLocation(program, "juliaEnabled"), isJulia)
         # gl.glUniform1i(gl.glGetUniformLocation(program, "gradient"), 0)
@@ -626,7 +790,7 @@ class GLWidget(QGLWidget):
         gl.glUniform1f(gl.glGetUniformLocation(program, "smoothColoring"), smoothColoring)
         gl.glUniform1f(gl.glGetUniformLocation(program, "time"), glfw.get_time())
 
-        gl.glUniform3f(gl.glGetUniformLocation(program, "col1"), col1R / 100, col1G / 100, col1B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col1"), col1R / 100, col1G / 100 ,col1B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col2"), col2R / 100, col2G / 100, col2B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col3"), col3R / 100, col3G / 100, col3B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col4"), col4R / 100, col4G / 100, col4B / 100)
@@ -635,6 +799,7 @@ class GLWidget(QGLWidget):
         gl.glUniform3f(gl.glGetUniformLocation(program, "col7"), col7R / 100, col7G / 100, col7B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col8"), col8R / 100, col8G / 100, col8B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col9"), col9R / 100, col9G / 100, col9B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "inColor"), inColorR / 255, inColorG / 255, inColorB / 255)
 
         gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6)
         gl.glBindVertexArray(0)
@@ -800,7 +965,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
 
         self.resize(WIDTH + 20, 490)
-        self.setWindowTitle("UniFract++")
+        self.setWindowTitle("UniFract II")
 
         self.fractalEditor = fractalEditor(self)
 
@@ -834,6 +999,9 @@ class MainWindow(QMainWindow):
         global R4
         global B4
         global G4
+        global R5
+        global G5
+        global B5
         global zlay
         global formulaBtn
         global presCol
@@ -895,7 +1063,9 @@ class MainWindow(QMainWindow):
 
         fractalType.currentIndexChanged.connect(self.changeFractal)
 
-        Power = QSpinBox()
+        Power = QDoubleSpinBox()
+        Power.setSingleStep(0.0000000001)
+        Power.setDecimals(10)
         Power.setValue(2)
         Power.setMinimum(2)
         Power.setMaximum(5)
@@ -980,6 +1150,7 @@ class MainWindow(QMainWindow):
         col2 = QHBoxLayout()
         col3 = QHBoxLayout()
         col4 = QHBoxLayout()
+        col5 = QHBoxLayout()
 
         R1 = QSlider(Qt.Horizontal)
         R1.setMaximum(100)
@@ -1085,6 +1256,22 @@ class MainWindow(QMainWindow):
         col4.addWidget(G4)
         col4.addWidget(B4)
 
+        R5 = QSlider(Qt.Horizontal)
+        R5.setMaximum(100)
+        R5.setMinimum(0)
+
+        R5.valueChanged.connect(self.editGradient)
+
+        G5 = QSlider(Qt.Horizontal)
+        G5.setMaximum(100)
+        G5.setMinimum(0)
+
+        G5.valueChanged.connect(self.editGradient)
+
+        R5.setValue(col5R)
+
+        col5.addWidget(R5)
+
         # Presets
 
         presCol = QComboBox()
@@ -1112,6 +1299,7 @@ class MainWindow(QMainWindow):
         tab3.layout.addRow("Color 2", col2)
         tab3.layout.addRow("Color 3", col3)
         tab3.layout.addRow("Color 4", col4)
+        tab3.layout.addRow("Color 5", col5)
         tab3.layout.addRow(randCol)
         tab3.layout.addRow(inColorBtn)
 
@@ -1120,8 +1308,16 @@ class MainWindow(QMainWindow):
     def inColor(self):
         color = QColorDialog.getColor()
 
+        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+
         if color.isValid():
-            print(color.getRgb())
+            inColorR = int(color.getRgb()[0])
+            inColorG = int(color.getRgb()[1])
+            inColorB = int(color.getRgb()[2])
+
+        self.glWidget.update()
+
+        gl.glUniform3f(gl.glGetUniformLocation(program, "inColor"), inColorR/255, inColorG/255, inColorB/255)
 
     def openWindow(self):
         self.fractalEditor.show()
@@ -1152,6 +1348,8 @@ class MainWindow(QMainWindow):
         global isJulia
         global StartY
         global StartX
+        global StartRe
+        global StartIm
 
         program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
@@ -1165,6 +1363,9 @@ class MainWindow(QMainWindow):
         else:
             StartX, StartY = 0.0, 0.0
 
+        StartRe.setText(str(StartX))
+        StartIm.setText(str(StartY))
+
         gl.glUniform1f(gl.glGetUniformLocation(program, "juliaEnabled"), isJulia)
 
     def changePower(self):
@@ -1175,8 +1376,8 @@ class MainWindow(QMainWindow):
 
         self.glWidget.update()
 
-        power = Power.value()
-        gl.glUniform1i(gl.glGetUniformLocation(program, "POWER"), power)
+        power = float(Power.value())
+        gl.glUniform1f(gl.glGetUniformLocation(program, "POWER"), power)
 
     def changeLayer(self):
         global zlay
@@ -1240,6 +1441,7 @@ class MainWindow(QMainWindow):
         global R4
         global B4
         global G4
+        global R5
         global col1R
         global col1G
         global col1B
@@ -1253,11 +1455,8 @@ class MainWindow(QMainWindow):
         global col4G
         global col4B
 
-		if bool(compileShader):
-        	program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
-		else:
-			pass
-			
+        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+
         col1R = int(R1.value())
         col1G = int(G1.value())
         col1B = int(B1.value())
@@ -1270,11 +1469,13 @@ class MainWindow(QMainWindow):
         col4R = int(R4.value())
         col4G = int(G4.value())
         col4B = int(B4.value())
+        col5R = int(R5.value())
 
         gl.glUniform3f(gl.glGetUniformLocation(program, "col1"), col1R / 100, col1G / 100, col1B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col2"), col2R / 100, col2G / 100, col2B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col3"), col3R / 100, col3G / 100, col3B / 100)
         gl.glUniform3f(gl.glGetUniformLocation(program, "col4"), col4R / 100, col4G / 100, col4B / 100)
+        gl.glUniform3f(gl.glGetUniformLocation(program, "col5"), col5R / 100, col5G / 100, col5B / 100)
 
         self.glWidget.update()
 
@@ -1311,10 +1512,24 @@ class MainWindow(QMainWindow):
         global col10B
         global program
 
+        global R1
+        global B1
+        global G1
+        global R2
+        global B2
+        global G2
+        global R3
+        global B3
+        global G3
+        global R4
+        global B4
+        global G4
+        global R5
+
         program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
         col1R = random.randint(0, 100)
-        col1B = random.randint(0, 100)
+        col1G = random.randint(0, 100)
         col1B = random.randint(0, 100)
         col2R = random.randint(0, 100)
         col2G = random.randint(0, 100)
