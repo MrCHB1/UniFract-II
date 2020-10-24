@@ -1067,8 +1067,6 @@ class MainWindow(QMainWindow):
         Power.setSingleStep(0.0000000001)
         Power.setDecimals(10)
         Power.setValue(2)
-        Power.setMinimum(2)
-        Power.setMaximum(5)
         Power.valueChanged.connect(self.changePower)
 
         StartingP = QHBoxLayout()
