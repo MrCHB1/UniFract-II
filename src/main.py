@@ -2,10 +2,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtOpenGL import *
-from sympy.parsing.sympy_parser import parse_expr
-import linecache
-import os.path
 from formulaWindow import *
+from exportImgSeriesDialog import *
 
 import OpenGL.GL as gl
 from OpenGL import GLU
@@ -16,14 +14,16 @@ import numpy as np
 import ctypes
 from PIL import Image
 
-import time
 import sys
 import decimal
 import random
 
+decimal.getcontext().prec = 2
+
 curFractal = 0
 power = 2
 isJulia = False
+perturbationEnabled = False
 smoothColoring = True
 
 fbo = None
@@ -78,7 +78,7 @@ import glm
 
 glfw.init()
 
-decimal.getcontext().prec = 10
+decimal.getcontext().prec = 26
 
 c = glm.vec2()
 z = glm.vec2(StartX, StartY)
@@ -141,6 +141,11 @@ void main() {
 fragmentShader = """
 #version 410 core
 
+#extension GL_ARB_shader_precision : enable
+
+precision highp float;
+precision highp int;
+
 uniform int itr;
 uniform double zoom;
 uniform dvec2 screenSize;
@@ -187,16 +192,30 @@ uniform float POWER;
 
 uniform bool juliaEnabled;
 uniform bool smoothColoring;
+uniform bool perturbationEnabled;
 
 uniform dvec2 Start;
 
 #define twopi 6.283185
 #define halfpi twopi / 4
 
+// A little something to test out 128-bit doubles
+
+// DOUBLE128
+
+// DOUBLE128
+
 dvec2 c_pow(dvec2 a, float power) {
     double r = sqrt(a.x*a.x+a.y*a.y);
     float theta = atan(float(z.y), float(z.x));
     dvec2 z = pow(float(r), power) * dvec2(cos(power*theta), sin(power*theta));
+    return z;
+}
+
+dvec2 c_abspow(dvec2 a, float power) {
+    double r = sqrt(a.x*a.x+a.y*a.y);
+    float theta = atan(float(z.y), float(z.x));
+    dvec2 z = pow(float(r), power) * dvec2(abs(cos(power*theta)), abs(sin(power*theta)));
     return z;
 }
 
@@ -269,11 +288,20 @@ dvec2 c_powcelimi(dvec2 a, int power) {
     return o;
 }
 
+bool slopes = true;
+
 double mandelbrot(dvec2 c) {
     z = vec2(Start.x, Start.y);
 
     if (smoothColoring) {
         double c2 = dot(c, c);
+    }
+
+    if (slopes) {
+        double h2 = 1.5;
+        int angle = 45;
+
+        int R = 100;
     }
 
     const double B = 256.0;
@@ -293,9 +321,9 @@ double mandelbrot(dvec2 c) {
         //dvec2 zabsi = c_pow(z.x, -abs(z.y), POWER);
     
         if (FRACTAL_TYPE == 0) {
-            if (POWER == int(POWER))
+            if (POWER == int(POWER)) {
                 znew = c_powi(z, int(POWER)) + c;
-            else
+            } else
                 znew = c_pow(z, POWER) + c;
         } else if (FRACTAL_TYPE == 1) {
             if (POWER == int(POWER))
@@ -304,7 +332,7 @@ double mandelbrot(dvec2 c) {
                 znew = dvec2(c_pow(z, POWER).x, -c_pow(z, POWER).y) + c;
         } else if (FRACTAL_TYPE == 2) {
             if (POWER == int(POWER))
-                znew = dvec2(c_powi(z, int(POWER)).x, -abs(c_powi(z, int(POWER))).y) + c;
+                znew = c_powi(dvec2(abs(z.x), -abs(z.y)), int(POWER)) + c;
             else
                 znew = dvec2(c_pow(z, POWER).x, -abs(c_pow(z, POWER)).y) + c;
         } else if (FRACTAL_TYPE == 3) {
@@ -334,7 +362,7 @@ double mandelbrot(dvec2 c) {
                 znew = dvec2(c_powcel(z, POWER).x, -(c_pow(dvec2(abs(z.x), z.y), POWER)).y) + c;
         } else if (FRACTAL_TYPE == 8) {
             if (POWER == int(POWER))
-                znew = dvec2(c_powcel(z, int(POWER)).x, -c_powcelrei(z, int(POWER)).y) + c;
+                znew = dvec2(abs(c_powi(z, int(POWER)).x), -abs(c_powi(z, int(POWER)).y)) + c;
             else
                 znew = dvec2(abs(c_pow(z, POWER)).x, -abs(c_pow(z, POWER)).y) + c;
         } else if (FRACTAL_TYPE == 9) {
@@ -574,6 +602,53 @@ vec3 mapToColor(float t, vec3 c1, vec3 c2, vec3 c3, vec3 c4, vec3 c5, vec3 c6, v
     return c10;
 }
 
+double mandelbrotPerturbation(dvec2 c, dvec2 dc) {
+    dvec2 z = dvec2(Start.x, Start.y);
+    dvec2 dz = dvec2(Start.x, Start.y);
+    for (int i = 0; i < itr; i++) {
+        dvec2 dznew;
+        dvec2 znew;
+        if (FRACTAL_TYPE == 0) {
+            dz = c_times(2.0*z+dz,dz) + dc;
+            z = c_times(z, z) + c;
+        } else if (FRACTAL_TYPE == 1) {
+            dznew.x = 2.0*z.x*dz.x+(dz.x*dz.x)-(dz.y*dz.y)-2.0*dz.y*z.y + dc.x;
+            dznew.y = dc.y - 2.0*(z.x*dz.y+dz.x*z.y+dz.x*dz.y);
+            znew.x = z.x*z.x - z.y*z.y + c.x;
+            znew.y = c.y - (2.0*z.x*z.y);
+        }
+        //dz = dznew;
+        //z = znew;
+        if (dz.x*dz.x+dz.y*dz.y > threshold) {
+            escaped = true;
+            break;
+        }
+        n++;
+    }
+    return n/float(itr);
+}
+
+dvec2[100] deepZoomPoint(int depth) {
+    dvec2[100] v;
+    double xn_r = offset.x;
+    double xn_i = offset.y;
+
+    for (int i = 0; i != depth; i++) {
+        double re = xn_r + xn_r;
+        double im = xn_i + xn_i;
+
+        dvec2 c = dvec2(re, im);
+        v[i] = c;
+
+        if (re > 1024.0 || im > 1024.0 || re < -1024.0 || im < -1024.0)
+            return v;
+        
+        xn_r = xn_r * xn_r - xn_i * xn_i + offset.x;
+        xn_i = re * xn_i + offset.y;
+    }
+    return v;
+}
+
 void main() {
     dvec2 coord = dvec2(gl_FragCoord.xy);
     vec2 resolution = vec2(3.0, 3.0);
@@ -581,13 +656,17 @@ void main() {
     vec2 off1 = vec2(1.3846153846) * direction;
     vec2 off2 = vec2(3.2307692308) * direction;
     dvec2 z = vec2(Start.x, Start.y);
-    dvec2 c = ((coord - screenSize / 2) / zoom) - offset;
+    dvec2 p = (coord - screenSize / 2);
     dvec2 znew;
 
     double t;
-    if (!juliaEnabled)
-        t = mandelbrot(((coord - screenSize / 2) / zoom) - offset);
-    else
+    if (!juliaEnabled) {
+        dvec2 c = -offset;
+        dvec2 dc = p / zoom;
+        t = perturbationEnabled ? mandelbrotPerturbation(c, dc) : mandelbrot(c + dc);
+        dc += -offset - c;
+        t = perturbationEnabled ? mandelbrotPerturbation(c, dc) : mandelbrot(c + dc);
+    } else
         t = julia(((coord - screenSize / 2) / zoom) - offset);
 
     //double t3d;
@@ -597,6 +676,8 @@ void main() {
         gl_FragColor = vec4(1.0);
 
     vec4 color = escaped ? vec4(mapToColor(float(mod(t, itr)), vec3(palette[0]), vec3(palette[1]), vec3(palette[2]), vec3(palette[3]), vec3(palette[4]), vec3(palette[5]), vec3(palette[6]), vec3(palette[7]), vec3(palette[8]), vec3(palette[9]), vec3(palette[10])), 1.0) : vec4(inColor, 1.0);
+
+    //color.rgb += (t < 0.0) ? vec3(0.0) : 0.5 + 0.5*cos(vec3(pow(float(zoom), 0.22)*t*0.05) + vec3(3.0, 3.5, 4.0));
 
     gl_FragColor = color;
 }
@@ -622,31 +703,22 @@ in vec2 TexCoords;
 uniform sampler2D tex;
 uniform float time;
 
-float hash(vec2 x)
-{
-	return fract(cos(dot(x.xy,vec2(2.31,53.21))*124.123)*412.0); 
+#define PI 3.14159265359
+#define rot(a) mat2(cos(a + PI*0.5*vec4(0,1,3,0)))
+
+float hash13(vec3 p3) {
+    p3 = fract(p3 * .1031);
+    p3 += dot(p3, p3.yzx + 19.19);
+    return fract((p3.x+p3.y) * p3.z);
 }
 
 void main() {
-    vec3 result = texture2D(tex, TexCoords).xyz;
+    vec4 color = texture2D(tex, TexCoords.st);
+    vec4 color2 = texture2D(tex, TexCoords.st - 0.01);
+    
+    color2 = color;
 
-    float acc = .0;
-
-    for (int smp = 0; smp < 16; smp++) {
-        float tnoise = hash(TexCoords.xy+vec2(smp,smp))*(1.0/24.0);
-
-        vec2 temp = TexCoords-result.xy+vec2(.0,3.0+4.0);
-        float s = sqrt(dot(temp, temp));
-        s -= 1.0;
-        s *= gl_FragCoord.y*.05;
-        s = min(1.0,max(.0,s));
-
-        acc += s/float(16);
-    }
-
-    result += hash(TexCoords.xy+result.xy)*.02;
-
-    gl_FragColor = vec4(result, 1.0);
+    gl_FragColor = vec4(color2.rgb, 0.5f);
 }
 """
 
@@ -681,7 +753,6 @@ class GLWidget(QGLWidget):
     global col1R
     global col1G
     global col1B
-    global texture
     global fbo
 
     def __init__(self, parent=None):
@@ -692,6 +763,10 @@ class GLWidget(QGLWidget):
 
     def initializeGL(self):
         self.qglClearColor(QColor(255, 0, 0))
+        glFormat = QSurfaceFormat()
+        glFormat.setVersion(4, 1)
+        glFormat.setProfile(QSurfaceFormat.CoreProfile)
+        QSurfaceFormat.setDefaultFormat(glFormat)
     
     def resizeGL(self, width, height):
         gl.glViewport(0, 0, width, height)
@@ -776,14 +851,15 @@ class GLWidget(QGLWidget):
         gl.glBindVertexArray(vao)
         gl.glUseProgram(program)
 
-        gl.glUniform2d(gl.glGetUniformLocation(program, "screenSize"), 550, 420)
-        gl.glUniform2d(gl.glGetUniformLocation(program, "offset"), offsetX, offsetY)
+        gl.glUniform2d(gl.glGetUniformLocation(program, "screenSize"), decimal.Decimal(550), decimal.Decimal(420))
+        gl.glUniform2d(gl.glGetUniformLocation(program, "offset"), decimal.Decimal(offsetX), decimal.Decimal(offsetY))
         gl.glUniform1d(gl.glGetUniformLocation(program, "zoom"), zoom)
         gl.glUniform1i(gl.glGetUniformLocation(program, "itr"), itr)
         gl.glUniform1i(gl.glGetUniformLocation(program, "FRACTAL_TYPE"), curFractal)
         gl.glUniform1f(gl.glGetUniformLocation(program, "POWER"), power)
         gl.glUniform2d(gl.glGetUniformLocation(program, "Start"), StartX, StartY)
         gl.glUniform1f(gl.glGetUniformLocation(program, "juliaEnabled"), isJulia)
+        gl.glUniform1f(gl.glGetUniformLocation(program, "perturbationEnabled"), perturbationEnabled)
         # gl.glUniform1i(gl.glGetUniformLocation(program, "gradient"), 0)
         gl.glUniform1f(gl.glGetUniformLocation(program, "layer"), layer)
         gl.glUniform2d(gl.glGetUniformLocation(program, "cFormula"), z.x*z.x-z.y*z.y, 2.0*abs(z.x)*z.y)
@@ -823,6 +899,11 @@ class GLWidget(QGLWidget):
 
             gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
             gl.glBindVertexArray(0)
+        
+        gl.glDeleteShader(compileShader(vertexShader, gl.GL_VERTEX_SHADER))
+        gl.glDeleteShader(compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+
+        gl.glDeleteProgram(program)
 
     def wheelEvent(self, event):
         global zoom
@@ -831,10 +912,15 @@ class GLWidget(QGLWidget):
         global offsetY
         global itr
 
+        offsetX = decimal.Decimal(offsetX)
+        offsetY = decimal.Decimal(offsetY)
+
+        print(offsetX, offsetY)
+
         program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
-        dx = (event.pos().x() - 550 / 2) / zoom - offsetX
-        dy = (420 - event.pos().y() - 420 / 2) / zoom - offsetY
+        dx = decimal.Decimal((event.pos().x() - 550 / 2) / zoom) - offsetX
+        dy = decimal.Decimal((420 - event.pos().y() - 420 / 2) / zoom) - offsetY
 
         offsetX = -dx
         offsetY = -dy
@@ -846,8 +932,8 @@ class GLWidget(QGLWidget):
         if zoom <= 100.0:
             zoom = 100.0
 
-        dx = (event.pos().x() - 550 / 2) / zoom
-        dy = (420 - event.pos().y() - 420 / 2) / zoom
+        dx = decimal.Decimal((event.pos().x() - 550 / 2) / zoom)
+        dy = decimal.Decimal((420 - event.pos().y() - 420 / 2) / zoom)
         offsetX += dx
         offsetY += dy
 
@@ -868,6 +954,11 @@ class GLWidget(QGLWidget):
         global zoom
         global juliaTrigger
         global draggingParam
+
+        offsetX = decimal.Decimal(offsetX)
+        offsetY = decimal.Decimal(offsetY)
+
+        self.update()
 
         if event.button() == Qt.LeftButton:
             dragging = True
@@ -897,13 +988,18 @@ class GLWidget(QGLWidget):
         global StartY
         global juliaTrigger
 
+        offsetX = decimal.Decimal(offsetX)
+        offsetY = decimal.Decimal(offsetY)
+
+        print(offsetX, offsetY)
+
         program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
         self.update()
 
         if dragging:
-            offsetX += (event.pos().x() - oldX) / zoom
-            offsetY += (oldY - event.pos().y()) / zoom
+            offsetX += decimal.Decimal((event.pos().x() - oldX) / zoom)
+            offsetY += decimal.Decimal((oldY - event.pos().y()) / zoom)
 
             oldX = event.pos().x()
             oldY = event.pos().y()
@@ -935,10 +1031,14 @@ class GLWidget(QGLWidget):
         global juliaTrigger
         global StartRe
         global StartIm
+        global draggingParam
+
+        offsetX = decimal.Decimal(offsetX)
+        offsetY = decimal.Decimal(offsetY)
 
         if event.button() == Qt.LeftButton:
-            offsetX += event.pos().x() - oldX
-            offsetY += oldY - event.pos().y()
+            offsetX += decimal.Decimal(event.pos().x() - oldX)
+            offsetY += decimal.Decimal(oldY - event.pos().y())
 
             dragging = False
             draggingParam = False
@@ -979,6 +1079,7 @@ class MainWindow(QMainWindow):
         global fractalType
         global program
         global power
+        global perturb
         global Power
         global StartRe
         global StartIm
@@ -1012,6 +1113,7 @@ class MainWindow(QMainWindow):
         tab1 = QWidget(self)
         tab2 = QWidget(self)
         tab3 = QWidget(self)
+        tab4 = QWidget(self)
         tabs.resize(255, 420)
 
         tabs.move(560, self.glWidget.y())
@@ -1019,16 +1121,20 @@ class MainWindow(QMainWindow):
         tabs.addTab(tab1, "Fractal")
         tabs.addTab(tab2, "Rendering")
         tabs.addTab(tab3, "Gradient")
+        tabs.addTab(tab4, "Other")
 
         tab1.layout = QFormLayout()
         tab2.layout = QFormLayout()
         tab3.layout = QFormLayout()
+        tab4.layout = QFormLayout()
 
         # Main Menu
 
         mainMenu = QMenuBar(self)
         fileMenu = mainMenu.addMenu("&File")
         editMenu = mainMenu.addMenu("&Edit")
+        exportImgSeries = fileMenu.addAction("Export Image Series")
+        exportImgSeries.triggered.connect(self.exportImgs)
 
         # Tool Bar
 
@@ -1064,7 +1170,7 @@ class MainWindow(QMainWindow):
         fractalType.currentIndexChanged.connect(self.changeFractal)
 
         Power = QDoubleSpinBox()
-        Power.setSingleStep(0.0000000001)
+        Power.setSingleStep(0.01)
         Power.setDecimals(10)
         Power.setValue(2)
         Power.valueChanged.connect(self.changePower)
@@ -1276,7 +1382,6 @@ class MainWindow(QMainWindow):
         presCol.addItem("Default")
         presCol.addItem("Fire")
         presCol.addItem("Sunset")
-        presCol.addItem("Ocean")
         presCol.addItem("Pastel Rainbow")
 
         presCol.currentIndexChanged.connect(self.changePresets)
@@ -1302,6 +1407,16 @@ class MainWindow(QMainWindow):
         tab3.layout.addRow(inColorBtn)
 
         tab3.setLayout(tab3.layout)
+
+        # Tab 4 (Other)
+
+        perturb = QCheckBox()
+        perturb.setChecked(False)
+        perturb.clicked.connect(self.setPerturbation)
+
+        tab4.layout.addRow("Use Perturbation", perturb)
+
+        tab4.setLayout(tab4.layout)
 
     def inColor(self):
         color = QColorDialog.getColor()
@@ -1360,9 +1475,6 @@ class MainWindow(QMainWindow):
             StartY = -0.5
         else:
             StartX, StartY = 0.0, 0.0
-
-        StartRe.setText(str(StartX))
-        StartIm.setText(str(StartY))
 
         gl.glUniform1f(gl.glGetUniformLocation(program, "juliaEnabled"), isJulia)
 
@@ -1452,6 +1564,9 @@ class MainWindow(QMainWindow):
         global col4R
         global col4G
         global col4B
+        global col5R
+        global col5G
+        global col5B
 
         program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
 
@@ -1726,6 +1841,50 @@ class MainWindow(QMainWindow):
         gl.glUniform3f(gl.glGetUniformLocation(program, "col9"), col9R / 100, col9G / 100, col9B / 100)
 
         self.glWidget.update()
+
+    def exportImgs(self):
+        global zoom
+        frames = 0
+        numFrames = 50
+        multiplier = zoom**(1.0/(numFrames-1.0))
+        denom = 1.0
+        expDg = exportDialog()
+        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+        while zoom >= 100.0:
+            self.glWidget.paintGL()
+            image = self.glWidget.grabFrameBuffer()
+            image.save("fr_%04d.png" % frames)
+
+            gl.glUniform1d(gl.glGetUniformLocation(program, "zoom"), zoom)
+            
+            zoom /= 1.02
+            frames += 1
+            self.glWidget.update()
+
+    def setPerturbation(self):
+        global perturb
+        global perturbationEnabled
+        global fractalType
+        global Power
+        global juliaTrigger
+        
+        program = compileProgram(compileShader(vertexShader, gl.GL_VERTEX_SHADER), compileShader(fragmentShader, gl.GL_FRAGMENT_SHADER))
+
+        self.glWidget.update()
+
+        perturbationEnabled = perturb.isChecked()
+
+        if perturb.isChecked():
+            #fractalType.setCurrentIndex(0)
+            #fractalType.setEnabled(False)
+            Power.setEnabled(False)
+            juliaTrigger.setEnabled(False)
+        else:
+            #fractalType.setEnabled(True)
+            Power.setEnabled(True)
+            juliaTrigger.setEnabled(True)
+
+        gl.glUniform1f(gl.glGetUniformLocation(program, "perturbationEnabled"), perturb.isChecked())
 
     def resetEverything(self):
         global Power
