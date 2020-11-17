@@ -15,8 +15,8 @@
 ## How to Install & Use
 To start up UniFract II, download it from Releases.
 
-In order for UniFract II to run properly, you need to install all the modules from requirements.txt.
-If you don't have a way to run "main.py", just make sure you have Python or Python 3 installed on your computer, then go to the same directory as "main.py" (under src). In terminal, type in "python main.py". Alternatively, you can try "python3 main.py".
+- In order for UniFract II to run properly, you need to install all the modules from requirements.txt.
+- If you don't have a way to run "main.py", just make sure you have Python or Python 3 installed on your computer, then go to the same directory as "main.py" (under src). In terminal, type in "python main.py". Alternatively, you can try "python3 main.py".
 
 ## What's new in UniFract II?
 You can now edit gradients! Chose from over 16 million colors, and more than 3 gradient layers!
