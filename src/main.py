@@ -1513,94 +1513,94 @@ class MainWindow(QMainWindow):
         global formulaBtn
         global presCol
 
-        # Set UI Style
+        # Set UI Style (Disabled for various reasons)
 
-        self.setStyleSheet("""
-        QPushButton, QDoubleSpinBox, QComboBox, QLineEdit {
-            background-color: #00BBFF;
-            color: #FFFFFF;
-            border: none;
-            border-radius: 2px;
-        }
+        # self.setStyleSheet("""
+        # QPushButton, QDoubleSpinBox, QComboBox, QLineEdit {
+        #     background-color: #00BBFF;
+        #     color: #FFFFFF;
+        #     border: none;
+        #     border-radius: 2px;
+        # }
 
-        QSlider::handle, QSlider::sub-page:vertical {
-            background: #000011;
-        }
+        # QSlider::handle, QSlider::sub-page:vertical {
+        #     background: #000011;
+        # }
 
-        QComboBox::drop-down {
-            background-color: #0097CF;
-            color: #000000;
-        }
+        # QComboBox::drop-down {
+        #     background-color: #0097CF;
+        #     color: #000000;
+        # }
 
-        QComboBox::drop-down:on {
-            padding-left: 4px;
-        }
+        # QComboBox::drop-down:on {
+        #     padding-left: 4px;
+        # }
         
-        QComboBox QAbstractItemView {
-            background-color: #000022;
-        }
+        # QComboBox QAbstractItemView {
+        #     background-color: #000022;
+        # }
 
-        QPushButton:hover {
-            background-color: #7ADCFF;
-        }
+        # QPushButton:hover {
+        #     background-color: #7ADCFF;
+        # }
 
-        QPushButton:pressed {
-            background-color: #0097CF;
-        }
+        # QPushButton:pressed {
+        #     background-color: #0097CF;
+        # }
 
-        QCheckBox::indicator {
-            background-color: #00BBFF;
-            color: #FFFFFF;
-        }
+        # QCheckBox::indicator {
+        #     background-color: #00BBFF;
+        #     color: #FFFFFF;
+        # }
 
-        QMainWindow {
-            background-color: #000011;
-        }
+        # QMainWindow {
+        #     background-color: #000011;
+        # }
 
-        QLabel {
-            color: #FFFFFF;
-        }
+        # QLabel {
+        #     color: #FFFFFF;
+        # }
 
-        QTabWidget {
-            background-color: #001155;
-            color: #FFFFFF;
-            border: none;
-            border-radius: 2px;
-        }
-        QTabBar {
-            background-color: #002277;
-            color: #FFFFFF;
-            border: none;
-            border-radius: 2px;
-        }
+        # QTabWidget {
+        #     background-color: #001155;
+        #     color: #FFFFFF;
+        #     border: none;
+        #     border-radius: 2px;
+        # }
+        # QTabBar {
+        #     background-color: #002277;
+        #     color: #FFFFFF;
+        #     border: none;
+        #     border-radius: 2px;
+        # }
 
-        QTabBar::tab:selected {
-            background-color: #3064E6;
-            color: #FFFFFF;
-        }
+        # QTabBar::tab:selected {
+        #     background-color: #3064E6;
+        #     color: #FFFFFF;
+        # }
 
-        QTabBar::tab:hover {
-            background-color: #002EA1;
-        }
+        # QTabBar::tab:hover {
+        #     background-color: #002EA1;
+        # }
 
-        QTabBar QToolButton {
-            background-color: #00BBFF;
-            color: #000011;
-            border: none;
-            border-radius: 2px;
-        }
+        # QTabBar QToolButton {
+        #     background-color: #00BBFF;
+        #     color: #000011;
+        #     border: none;
+        #     border-radius: 2px;
+        # }
 
-        QTabBar QToolButton::hover {
-            background-color: #7ADCFF;
-            color: #FFFFFF;
-        }
+        # QTabBar QToolButton::hover {
+        #     background-color: #7ADCFF;
+        #     color: #FFFFFF;
+        # }
 
-        QDockWidget::close-button {
-            border: none;
-            background: transparent;
-            icon-size: 12px;
-        }
-        """)
+        # QDockWidget::close-button {
+        #     border: none;
+        #     background: transparent;
+        #     icon-size: 12px;
+        # }
+        # """)
 
         # FPS Label
         self.fps = QLabel()
